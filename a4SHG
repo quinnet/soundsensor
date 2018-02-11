@@ -1,0 +1,101 @@
+var stores = require("store"); 			// init store moduke
+var http = require("http");				// init http module
+var documents = require("document");	// init document module
+
+// connection api to ADB refer to url for more info. 
+var adsurl = "https://public-api.adsbexchange.com/VirtualRadar/AircraftList.json";
+
+
+try {
+        
+  var stripped = request.parameters.params.replace("\[", "|");
+
+  // we start with the gps (cayenne) data...
+  var parameters = stripped.substring(stripped.indexOf("map|") + 4, stripped.lastIndexOf("|")).split("|");  
+      
+  var gps = parameters[0].substring(0, parameters[0].length-1).split(" ");
+       
+  for (var i=gps.length; i--;) {
+     if (gps[i].indexOf("latitude")>=0) break;
+	}
+  var lat = gps[i].substring(gps[i].indexOf("latitude") + 9, gps[i].length).trim();
+  
+  for (var i=gps.length; i--;) {
+     if (gps[i].indexOf("longitude")>=0) break;
+	}
+  var lng = gps[i].substring(gps[i].indexOf("longitude") + 10, gps[i].length).trim();
+    
+  //var lat2=52.2183;
+  //var lng2=4.8193;
+    
+  var noiselevel 	= parameters[1];
+  var originid 		= parameters[2];
+  var timestamp 	= parameters[3];
+ 
+  var fDstU = "10";
+  var fDstL = "0";
+  var email = "g.boon@aim4you.nl";  
+  var requestParameters = {
+ 
+    url: adsurl,
+    params: {
+      lat: lat,
+      lng: lng,
+      fDstL: fDstL,
+      fDstU: fDstU
+    }
+  };
+ 
+  var response = http.request(requestParameters);
+  var body = JSON.parse(response.body);
+  var results = body.acList;
+    
+  var planes = [];
+  for (var i = 0; i < results.length; i++) {
+ 
+    var plane = {};
+    plane.Mdl = results[i].Mdl;
+    plane.Op = results[i].Op;
+    plane.GAlt = results[i].GAlt;
+    plane.From = results[i].From;
+    plane.To = results[i].To;
+    plane.Cou = results[i].Cou;
+    plane.Reg = results[i].Reg;
+    plane.Year = results[i].Year;      
+      
+    planes.push(plane);
+  }
+    
+    var oDocument = {
+    "timestamp": timestamp,
+    "originid": "Q001",
+    "lat": lat,
+    "lng": lng,
+    "noiselevel": noiselevel
+    //"planes": planes  
+  };    
+ 
+  // Commit payload to the SHG store
+  var myStore = documents.getInstance("a4SHG");
+  var result = myStore.create(oDocument);   javascript:void(0)
+
+ var prettyHtml = "Op dit moment vliegen op " + fDstU + " km afstand van <br>lat :	" + lat + "<br>lng :	" + lng + "<br><br>"+ planes.length + " toestellen, met name:" + "<br><p>"; 
+    for (var j = 0; j < planes.length; j++) { 
+    	prettyHtml += 
+            "Vliegtuig: " + planes[j].Mdl 	+ " <br>" +
+            "Operator:  " + planes[j].Op 	+ " <br>" + 
+            "Hoogte:	" + planes[j].GAlt 	+ " <br>" + 
+            "Van:		" + planes[j].From 	+ " <br>" +  
+            "Naar:		" + planes[j].To 	+ " <br><br><br>"  
+    }
+    
+    prettyHtml += "<br><p>Deze vliegtuigen produceren overlast";
+    prettyHtml += "<br><br><p>het gemeten geluidsniveau was immers: " + noiselevel + " dBa";
+    prettyHtml += "<br><br><p>...waarvan akte!, getekend dd: " + timestamp;
+    
+    sendMail(email, "Aim 4 Schiphol", "Geluidsoverlast melding ", prettyHtml); 
+    
+    return planes; 
+}
+
+catch(exception) { return exception; }https://www.scriptr.io/workspace#notifications
